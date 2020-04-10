@@ -16,13 +16,11 @@ using namespace std;
 #define MAXM 500005
 #define MAXL 1000005 
 
-const ll inf = 1ll << 62;
-
 class bloomfliter{
   private:
     int t, M; //t次hash 共t*M个位置
     BOBHash32* bobhash[T];
-    ll a[T * MAXM];
+    uint64_t a[T * MAXM];
   public:
     bloomfliter(int t, int M) : t(t), M(M) {
         srand(time(NULL));
@@ -31,9 +29,9 @@ class bloomfliter{
         memset(a, 0, sizeof(a));
     }
 
-    void insert(const string& x, const ll& key) {
+    void insert(const uint64_t& x, const uint64_t& key) {
         for (int k = 0; k < t; ++k) {
-            unsigned int H = bobhash[k] -> run(x.c_str(), x.size());
+            unsigned int H = bobhash[k] -> run((char *)&x, 8);
             unsigned int pos = H % M;
 
             a[k * M + pos] = key;
@@ -42,10 +40,10 @@ class bloomfliter{
         return;
     }
 
-    ll query(const string& x) {
-        ll res = inf;
+    uint64_t query(const uint64_t& x) {
+        uint64_t res = -1;
         for (int k = 0; k < t; ++k) {
-            unsigned int H = bobhash[k] -> run(x.c_str(), x.size());
+            unsigned int H = bobhash[k] -> run((char *)&x, 8);
             unsigned int pos = H % M;
 
             res = min(res, a[k * M + pos]);
@@ -61,18 +59,18 @@ class Alg
     int L;
     bloomfliter timeStamp;
     BOBHash32* bobhash;
-    ll counter[MAXL][C];
+    uint64_t counter[MAXL][C];
   
   public:
     int total;
-    pair <pair <string, ll>, double> ans[N];
+    pair <pair <uint64_t, uint64_t>, double> ans[N];
     
     Alg(int t, int M, int L) : timeStamp(t, M), L(L), total(0) { //前两个参数是bloomfliter的参数, L是hash表的大小
         bobhash = new BOBHash32(rand() % 5000);
         memset(counter, 0, sizeof(counter));
     } 
 
-    void check(const pair <string, ll>&ele, int pos) {
+    void check(const pair <uint64_t, uint64_t>&ele, int pos) {
         double ave = 0, var = 0;
         for (int i = 0; i < C; ++i) ave += counter[pos][i];
         ave /= C;
@@ -80,19 +78,19 @@ class Alg
         for (int i = 0; i < C; ++i) var += sqr(counter[pos][i] - ave);
         var /= C;
 
-        if (var < theta) 
+        if (var < ave * ave * theta) 
             ans[++total] = make_pair(ele, ave);
         
         return;
     }
 
-    void insert(const pair <string, ll>& ele) { //丢一个元素进来
-        ll lst = timeStamp.query(ele.first), cur = ele.second;
+    void insert(const pair <uint64_t, uint64_t>& ele) { //丢一个元素进来
+        uint64_t lst = timeStamp.query(ele.first), cur = ele.second;
         timeStamp.insert(ele.first, cur);
         
         if (!lst || cur - lst < deltaT) return;
         
-        unsigned int H = bobhash -> run(ele.first.c_str(), ele.first.size());
+        unsigned int H = bobhash -> run((char *)&ele.first, 8);
         unsigned int pos = H % L;
         
         int cnt = 0, w = 0;
